@@ -7,6 +7,7 @@ An enterprise-grade analytical data application designed for property managers, 
 2. **On-the-Fly Localized Valuation Engine:** Utilizes SQL mathematical primitives to compute the average price and precise cost per square foot for a chosen neighborhood instantly upon touchpad input.
 3. **HTML5 Conversational Speech Integration:** Synchronizes interactive UI touch points with the browser's native text-to-speech engine to build high-accessibility response layouts.
 4. **Market Outlier Matrix Visualization:** Deploys reactive vector scatter charts to visually isolate property pricing distribution and map architectural sizing parameters.
+5. 3. **Automated Algorithmic Bargain Identifier Engine:** Automatically calculates neighborhood mathematical averages across listings and attaches custom visual indicators (`🔥 BARGAIN`) to any properties priced below standard market metrics.
 
 ## 🛠️ The System Tech Stack
 * **UI Framework Layout:** Streamlit (Web-Based GUI Micro-Framework)
