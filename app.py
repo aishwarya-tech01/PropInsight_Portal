@@ -39,9 +39,18 @@ st.markdown("""
         margin-bottom: 25px;
     }
     
+    /* 🎨 HIGH-CONTRAST SIDEBAR TEXT LABEL FIXES */
+    [data-testid="stSidebar"] .stMarkdown p, 
+    [data-testid="stSidebar"] label {
+        color: #ffffff !important; /* Pure high-contrast solid white */
+        font-weight: 700 !important; /* Bold font styling */
+        font-size: 1.05rem !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+    
     /* 🎨 HIGH-CONTRAST DASHBOARD CARD FIX */
     div[data-testid="stMetric"] {
-        background-color: #0f172a !important; /* Forces a deep luxury slate background */
+        background-color: #0f172a !important; 
         border: 2px solid #334155 !important;
         padding: 20px 25px !important;
         border-radius: 12px !important;
@@ -55,7 +64,7 @@ st.markdown("""
     
     /* 🏷️ Card Header Label Color Fix */
     div[data-testid="stMetric"] label [data-testid="stMetricLabel"] {
-        color: #00f2fe !important; /* Bright crisp Cyan */
+        color: #00f2fe !important; 
         font-size: 0.95rem !important;
         font-weight: 600 !important;
         letter-spacing: 0.5px !important;
@@ -63,24 +72,21 @@ st.markdown("""
     
     /* 🔢 Card Big Number Value Color Fix */
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #ffffff !important; /* Solid bright white */
+        color: #ffffff !important; 
         font-size: 2.2rem !important;
         font-weight: 700 !important;
     }
     
-    /* Style the sidebar panel view block */
     section[data-testid="stSidebar"] {
         background-color: #0f172a;
         border-right: 1px solid #1e293b;
     }
-    /* Custom divider design line */
     .custom-hr {
         border: 0;
         height: 1px;
         background-image: linear-gradient(to right, #00f2fe, #4facfe, transparent);
         margin: 20px 0;
     }
-    /* 🟢 CUSTOM BARGAIN BADGE STYLING */
     .bargain-badge {
         background-color: #065f46;
         color: #34d399;
@@ -101,7 +107,6 @@ st.markdown("""
         display: inline-block;
         font-size: 0.85rem;
     }
-    /* 🏦 LOAN CALCULATION DISPLAY CONTAINER */
     .emi-box {
         background-color: #0f172a;
         border: 1px dashed #4facfe;
@@ -138,7 +143,7 @@ def init_db():
             ('Urban 2BHK Residency', 'Wagholi', 2, 5100000, 950),
             ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100)
         ]
-        cursor.executemany("INSERT INTO listings (title, locality, bedrooms, price, square_feet) VALUES (?, ?, ?, ?, ?)", default_listings)
+        cursor.exec_numany = cursor.executemany("INSERT INTO listings (title, locality, bedrooms, price, square_feet) VALUES (?, ?, ?, ?, ?)", default_listings)
     conn.commit()
     conn.close()
 
@@ -201,9 +206,9 @@ st.markdown('<div class="main-title">🏠 PropInsight™ Real Estate Search Engi
 st.markdown('<div class="sub-title">Enterprise Relational Search Portal Featuring Live Neighborhood Valuation Metrics & Analytical Vector Arrays</div>', unsafe_allow_html=True)
 
 # Create interface views using Tabs
-tab_search, tab_loan = st.tabs(["🔍 Live Property Catalog", "🏦 Dynamic Affordability Calculator"])
+tab_search, tab_loan, tab_compare = st.tabs(["🔍 Live Property Catalog", "🏦 Dynamic Affordability Calculator", "📊 Municipal Sector Comparison"])
 
-# FETCH DATA FOR BOTH TABS
+# FETCH DATA FOR PIPELINES
 query = "SELECT *, (price / square_feet) AS cost_per_sqft FROM listings WHERE price <= ? AND bedrooms >= ?"
 params = [max_budget, selected_bhk]
 if selected_locality != "All Locations":
@@ -212,7 +217,7 @@ if selected_locality != "All Locations":
     
 conn = get_db_connection()
 df_properties = pd.read_sql_query(query, conn, params=params)
-df_all_market = pd.read_sql_query("SELECT locality, AVG(price / square_feet) as neighborhood_avg_sqft FROM listings GROUP BY locality", conn)
+df_all_market = pd.read_sql_query("SELECT locality, AVG(price / square_feet) as neighborhood_avg_sqft, AVG(price) as avg_price FROM listings GROUP BY locality", conn)
 conn.close()
 
 # ==========================================
@@ -250,21 +255,15 @@ with tab_search:
                 else:
                     st.markdown('<div class="normal-badge">⚖️ Standard Market Rate</div>', unsafe_allow_html=True)
             st.write("---")
-        
-        st.markdown("#### 📈 Market Value Distribution Scatter Chart Matrix")
-        fig = px.scatter(df_properties, x="square_feet", y="price", text="title", size="bedrooms", 
-                         color="locality", template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================
 # VIEW TAB 2: THE BANKING LOAN MODULE
 # ==========================================
 with tab_loan:
     st.markdown("#### 🏦 Real Estate Mortgage Loan Simulation")
-    st.write("Select a property from the dropdown below to calculate your compounding bank interest configurations.")
     
     if df_properties.empty:
-        st.warning("No listings available to run financial simulations. Adjust your touchpad limits.")
+        st.warning("No listings available to run financial simulations.")
     else:
         property_titles = df_properties['title'].tolist()
         selected_prop_title = st.selectbox("Select Target Property for Loan Analysis", property_titles)
@@ -302,13 +301,48 @@ with tab_loan:
             e1.metric("Net Principal Loan Amount", f"₹{principal_loan_amount:,.0f}")
             e2.metric("Calculated Monthly EMI", f"₹{calculated_monthly_emi:,.0f} / month")
             e3.metric("Lifetime Bank Interest Cost", f"₹{total_interest_paid:,.0f}")
-            
-            st.markdown(f"""
-                <div class="emi-box">
-                    <p style="color: #4facfe; margin: 0; font-weight: bold; font-size: 1.05rem;">💼 Financial Simulation Summary Notice</p>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 0.95rem;">
-                        Financing the <strong>{selected_prop_title}</strong> over a {loan_tenure}-year cycle requires a total gross repayment pipeline of 
-                        <strong>₹{total_repayment:,.0f} INR</strong>. Ensure your localized investment income parameters sync with this matrix.
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
+
+# ==========================================
+# 📊 VIEW TAB 3: NEIGHBORHOOD COMPARISON DASHBOARD
+# ==========================================
+with tab_compare:
+    st.markdown("#### ⚖️ Side-by-Side Municipal Sector Analytics")
+    st.write("Compare localized data sets side-by-side to find the most value-optimized zones.")
+    
+    col_choice1, col_choice2 = st.columns(2)
+    with col_choice1:
+        loc1 = st.selectbox("Select First Neighborhood", localities, index=0)
+    with col_choice2:
+        loc2 = st.selectbox("Select Second Neighborhood", localities, index=1 if len(localities) > 1 else 0)
+        
+    # Filter dataset for only selected localities
+    df_compare = df_all_market[df_all_market['locality'].isin([loc1, loc2])]
+    
+    if not df_compare.empty:
+        # Render a side-by-side bar chart comparison using Plotly
+        st.markdown("##### 📈 Rate Per Square Foot Comparison (INR)")
+        fig_compare = px.bar(
+            df_compare, 
+            x="locality", 
+            y="neighborhood_avg_sqft", 
+            color="locality",
+            text_auto='.0f',
+            labels={"neighborhood_avg_sqft": "Avg Rate (₹/sqft)", "locality": "Zoning District"},
+            template="plotly_dark"
+        )
+        fig_compare.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', showlegend=False)
+        st.plotly_chart(fig_compare, use_container_width=True)
+        
+        # Text analytics readout
+        row1 = df_compare[df_compare['locality'] == loc1].iloc[0]
+        row2 = df_compare[df_compare['locality'] == loc2].iloc[0]
+        
+        st.markdown(f"""
+            <div class="emi-box">
+                <p style="color: #00f2fe; margin: 0 0 10px 0; font-weight: bold; font-size: 1.05rem;">📋 Market Comparison Readout</p>
+                <ul style="color: #ffffff; margin: 0; padding-left: 20px; font-size: 0.95rem; line-height: 1.6;">
+                    <li><strong>{loc1}</strong> features an average rate of <span style="color: #00f2fe; font-weight: bold;">₹{row1['neighborhood_avg_sqft']:.0f}/sqft</span> with a baseline average cost of <span style="color: #00f2fe; font-weight: bold;">₹{row1['avg_price']:,.0f}</span>.</li>
+                    <li><strong>{loc2}</strong> features an average rate of <span style="color: #00f2fe; font-weight: bold;">₹{row2['neighborhood_avg_sqft']:.0f}/sqft</span> with a baseline average cost of <span style="color: #00f2fe; font-weight: bold;">₹{row2['avg_price']:,.0f}</span>.</li>
+                </ul>
+            </div>
+        """, unsafe_allow_html=True)
