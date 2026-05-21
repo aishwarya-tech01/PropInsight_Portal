@@ -14,7 +14,7 @@ def speak_real_estate_action(text_message):
         <script>
             if ('speechSynthesis' in window) {{
                 window.webkitSpeechSynthesis?.cancel() || window.speechSynthesis.cancel(); 
-                const textUtterance = new SpeechSynthesisUtterance("{text_message}");
+                        const textUtterance = new SpeechSynthesisUtterance("{text_message}");
                 textUtterance.rate = 1.15; 
                 window.speechSynthesis.speak(textUtterance);
             }}
@@ -33,46 +33,15 @@ st.markdown("""
         margin-bottom: 5px;
     }
     .sub-title {
-        color: #718096;
-        font-style: italic;
-        font-size: 1rem;
-        margin-bottom: 25px;
+pen your app.py file, find the custom CSS code block near the top, and look for the section targeting div[data-testid="stMetric"].
+        font-size: 1.05rem !important; /* Makes the font size slightly larger */
+        font-weight: 800 !important; /* Makes the text extra bold and clear */
+        letter-spacing: 0.5px !important;
     }
-    
-    /* 🎨 HIGH-CONTRAST SIDEBAR TEXT LABEL FIXES */
-    [data-testid="stSidebar"] .stMarkdown p, 
-    [data-testid="stSidebar"] label {
-        color: #ffffff !important; /* Pure high-contrast solid white */
-        font-weight: 700 !important; /* Bold font styling */
-        font-size: 1.05rem !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    }
-    
-    /* 🎨 HIGH-CONTRAST DASHBOARD CARD FIX */
-    div[data-testid="stMetric"] {
-        background-color: #0f172a !important; 
         border: 2px solid #334155 !important;
         padding: 20px 25px !important;
         border-radius: 12px !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
-        transition: transform 0.2s ease !important;
-    }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px) !important;
-        border-color: #00f2fe !important;
-    }
-    
-    /* 🏷️ Card Header Label Color Fix */
-    div[data-testid="stMetric"] label [data-testid="stMetricLabel"] {
-        color: #00f2fe !important; 
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        letter-spacing: 0.5px !important;
-    }
-    
-    /* 🔢 Card Big Number Value Color Fix */
-    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #ffffff !important; 
         font-size: 2.2rem !important;
         font-weight: 700 !important;
     }
@@ -93,22 +62,28 @@ st.markdown("""
         font-weight: bold;
         padding: 4px 10px;
         border-radius: 6px;
-        border: 1px solid #059669;
-        display: inline-block;
-        font-size: 0.85rem;
+/* 🎨 THEME-PROOF SIDEBAR COLOR ENHANCEMENT PANEL */
+    section[data-testid="stSidebar"] {
+        background-color: #0f172a !important; /* Locks left panel to Deep Midnight Navy */
+        border-right: 1px solid #1e293b !important;
     }
-    .normal-badge {
-        background-color: #1e293b;
-        color: #94a3b8;
-        font-weight: bold;
-        padding: 4px 10px;
-        border-radius: 6px;
-        border: 1px solid #334155;
-        display: inline-block;
-        font-size: 0.85rem;
+
+    /* 🏷️ Forces Sidebar Main Titles to Solid White (PropInsight, Touchpad Filters) */
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] .stMarkdown p {
+        color: #ffffff !important; /* Pure crisp white font text */
+        font-weight: 700 !important;
     }
-    .emi-box {
-        background-color: #0f172a;
+
+    /* 🏷️ Forces Input Form Labels to Solid High-Contrast Black/Dark Gray for Sharp Visibility */
+    section[data-testid="stSidebar"] label p,
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        color: #111827 !important; /* Premium dark onyx black for high-contrast visibility */
+        font-weight: 800 !important; /* Extra bold text formatting */
+        font-size: 1.05rem !important;
+    }
+        
         border: 1px dashed #4facfe;
         padding: 15px;
         border-radius: 8px;
