@@ -33,24 +33,41 @@ st.markdown("""
         margin-bottom: 5px;
     }
     .sub-title {
-        color: #a0aec0;
+        color: #718096;
         font-style: italic;
         font-size: 1rem;
         margin-bottom: 25px;
     }
-    /* Design corporate metric display dashboard cards */
+    
+    /* 🎨 HIGH-CONTRAST DASHBOARD CARD FIX */
     div[data-testid="stMetric"] {
-        background-color: #1e293b;
-        border: 2px solid #334155;
-        padding: 20px 25px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease;
+        background-color: #0f172a !important; /* Forces a deep luxury slate background */
+        border: 2px solid #334155 !important;
+        padding: 20px 25px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+        transition: transform 0.2s ease !important;
     }
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        border-color: #00f2fe;
+        transform: translateY(-2px) !important;
+        border-color: #00f2fe !important;
     }
+    
+    /* 🏷️ Card Header Label Color Fix */
+    div[data-testid="stMetric"] label [data-testid="stMetricLabel"] {
+        color: #00f2fe !important; /* Bright crisp Cyan */
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    /* 🔢 Card Big Number Value Color Fix */
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #ffffff !important; /* Solid bright white */
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+    }
+    
     /* Style the sidebar panel view block */
     section[data-testid="stSidebar"] {
         background-color: #0f172a;
@@ -84,6 +101,14 @@ st.markdown("""
         display: inline-block;
         font-size: 0.85rem;
     }
+    /* 🏦 LOAN CALCULATION DISPLAY CONTAINER */
+    .emi-box {
+        background-color: #0f172a;
+        border: 1px dashed #4facfe;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -102,7 +127,6 @@ def init_db():
     ''')
     cursor.execute("SELECT COUNT(*) FROM listings")
     if cursor.fetchone()[0] == 0:
-        # Seeding our Pune marketplace dataset
         default_listings = [
             ('Premium 2BHK Apartment', 'Koregaon Park', 2, 7500000, 1100),
             ('Luxury 3BHK Residency', 'Koregaon Park', 3, 12000000, 1600),
@@ -112,7 +136,6 @@ def init_db():
             ('Elite Penthouse Suite', 'Baner', 4, 18000000, 2400),
             ('Budget Studio Apartment', 'Wagholi', 1, 3200000, 450),
             ('Urban 2BHK Residency', 'Wagholi', 2, 5100000, 950),
-            # Adding an underpriced bargain property to test our logic loops!
             ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100)
         ]
         cursor.executemany("INSERT INTO listings (title, locality, bedrooms, price, square_feet) VALUES (?, ?, ?, ?, ?)", default_listings)
@@ -177,66 +200,115 @@ with st.sidebar:
 st.markdown('<div class="main-title">🏠 PropInsight™ Real Estate Search Engine</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Enterprise Relational Search Portal Featuring Live Neighborhood Valuation Metrics & Analytical Vector Arrays</div>', unsafe_allow_html=True)
 
-# Build dynamic SQL query strings from filter slider data points
+# Create interface views using Tabs
+tab_search, tab_loan = st.tabs(["🔍 Live Property Catalog", "🏦 Dynamic Affordability Calculator"])
+
+# FETCH DATA FOR BOTH TABS
 query = "SELECT *, (price / square_feet) AS cost_per_sqft FROM listings WHERE price <= ? AND bedrooms >= ?"
 params = [max_budget, selected_bhk]
-
 if selected_locality != "All Locations":
     query += " AND locality = ?"
     params.append(selected_locality)
     
 conn = get_db_connection()
 df_properties = pd.read_sql_query(query, conn, params=params)
-
-# BACKEND MARKET AGGREGATE CALCULATION: Fetch overall neighborhood averages to locate bargains
 df_all_market = pd.read_sql_query("SELECT locality, AVG(price / square_feet) as neighborhood_avg_sqft FROM listings GROUP BY locality", conn)
 conn.close()
 
-st.markdown("#### 📊 Dynamic Location Valuation Matrix")
-
-if df_properties.empty:
-    st.warning("No listings match your targeted inputs. Readjust your sidebar budget sliders to widen search scope.")
-else:
-    # Run analytical math primitives using Pandas
-    avg_market_price = df_properties['price'].mean()
-    avg_sqft_cost = df_properties['cost_per_sqft'].mean()
-    total_options = len(df_properties)
+# ==========================================
+# VIEW TAB 1: SEARCH & BARGAIN BADGES
+# ==========================================
+with tab_search:
+    st.markdown("#### 📊 Dynamic Location Valuation Matrix")
     
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Available Market Matches", f"{total_options} Properties")
-    m2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
-    m3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
-    
-    st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
-    
-    # --- AUTOMATED BARGAIN VALUATION INTELLIGENCE GENERATOR ---
-    st.markdown("#### 🏢 Smart Property Evaluation Catalog")
-    
-    # Merge current data streams with our market averages dataframe
-    df_evaluated = pd.merge(df_properties, df_all_market, on='locality', how='left')
-    
-    # Loop over rows and print out customized smart badges layout
-    for index, row in df_evaluated.iterrows():
-        col_desc, col_badge = st.columns([4, 1])
+    if df_properties.empty:
+        st.warning("No listings match your targeted inputs.")
+    else:
+        avg_market_price = df_properties['price'].mean()
+        avg_sqft_cost = df_properties['cost_per_sqft'].mean()
+        total_options = len(df_properties)
         
-        with col_desc:
-            st.markdown(f"**{row['title']}** — located in *{row['locality']}* ({row['bedrooms']} BHK)")
-            st.write(f"📐 Size: {row['square_feet']} sqft | 💰 Evaluation: ₹{row['price']:,.0f} | Rate: ₹{row['cost_per_sqft']:.0f}/sqft")
-            
-        with col_badge:
-            # If the specific house rate is lower than the neighborhood average, it's an official bargain!
-            if row['cost_per_sqft'] < row['neighborhood_avg_sqft']:
-                savings_pct = ((row['neighborhood_avg_sqft'] - row['cost_per_sqft']) / row['neighborhood_avg_sqft']) * 100
-                st.markdown(f'<div class="bargain-badge">🔥 BARGAIN ({savings_pct:.0f}% Under Market)</div>', unsafe_allow_html=True)
-            else:
-                st.markdown('<div class="normal-badge">⚖️ Standard Market Rate</div>', unsafe_allow_html=True)
-        st.write("---")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Available Market Matches", f"{total_options} Properties")
+        m2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
+        m3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
+        
+        st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
+        st.markdown("#### 🏢 Smart Property Evaluation Catalog")
+        
+        df_evaluated = pd.merge(df_properties, df_all_market, on='locality', how='left')
+        
+        for index, row in df_evaluated.iterrows():
+            col_desc, col_badge = st.columns([4, 1])
+            with col_desc:
+                st.markdown(f"**{row['title']}** — located in *{row['locality']}* ({row['bedrooms']} BHK)")
+                st.write(f"📐 Size: {row['square_feet']} sqft | 💰 Evaluation: ₹{row['price']:,.0f} | Rate: ₹{row['cost_per_sqft']:.0f}/sqft")
+            with col_badge:
+                if row['cost_per_sqft'] < row['neighborhood_avg_sqft']:
+                    savings_pct = ((row['neighborhood_avg_sqft'] - row['cost_per_sqft']) / row['neighborhood_avg_sqft']) * 100
+                    st.markdown(f'<div class="bargain-badge">🔥 BARGAIN ({savings_pct:.0f}% Under Market)</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="normal-badge">⚖️ Standard Market Rate</div>', unsafe_allow_html=True)
+            st.write("---")
+        
+        st.markdown("#### 📈 Market Value Distribution Scatter Chart Matrix")
+        fig = px.scatter(df_properties, x="square_feet", y="price", text="title", size="bedrooms", 
+                         color="locality", template="plotly_dark")
+        st.plotly_chart(fig, use_container_width=True)
+
+# ==========================================
+# VIEW TAB 2: THE BANKING LOAN MODULE
+# ==========================================
+with tab_loan:
+    st.markdown("#### 🏦 Real Estate Mortgage Loan Simulation")
+    st.write("Select a property from the dropdown below to calculate your compounding bank interest configurations.")
     
-    # Draw vector charts via Plotly Express
-    st.markdown("#### 📈 Market Value Distribution Scatter Chart Matrix")
-    fig = px.scatter(df_properties, x="square_feet", y="price", text="title", size="bedrooms", 
-                     color="locality", labels={"square_feet": "Property Size (Square Feet)", "price": "Total Evaluation (INR)"},
-                     template="plotly_dark", color_continuous_scale="Tealgrn")
-    fig.update_traces(textposition='top center', marker=dict(line=dict(width=1, color='White')))
-    fig.update_layout(plot_bgcolor='rgba(15,23,42,0.5)', paper_bgcolor='rgba(15,23,42,1)')
-    st.plotly_chart(fig, use_container_width=True)
+    if df_properties.empty:
+        st.warning("No listings available to run financial simulations. Adjust your touchpad limits.")
+    else:
+        property_titles = df_properties['title'].tolist()
+        selected_prop_title = st.selectbox("Select Target Property for Loan Analysis", property_titles)
+        
+        selected_row = df_properties[df_properties['title'] == selected_prop_title].iloc[0]
+        property_base_price = selected_row['price']
+        
+        st.info(f" Selected Asset Valuation: **₹{property_base_price:,.0f} INR**")
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            down_payment = st.slider("Down Payment Capital (INR)", min_value=0, max_value=int(property_base_price), value=int(property_base_price * 0.20), step=50000)
+        with c2:
+            interest_rate = st.slider("Bank Interest Rate (Annual %)", min_value=5.0, max_value=15.0, value=8.5, step=0.1)
+        with c3:
+            loan_tenure = st.slider("Loan Repayment Tenure (Years)", min_value=5, max_value=30, value=20, step=1)
+            
+        principal_loan_amount = property_base_price - down_payment
+        
+        if principal_loan_amount <= 0:
+            st.success("🎉 Your down payment covers 100% of the asset cost! No banking loan or EMI schedules required.")
+        else:
+            monthly_interest = (interest_rate / 12) / 100
+            total_months = loan_tenure * 12
+            
+            compounding_factor = (1 + monthly_interest) ** total_months
+            calculated_monthly_emi = principal_loan_amount * (monthly_interest * compounding_factor) / (compounding_factor - 1)
+            
+            total_repayment = calculated_monthly_emi * total_months
+            total_interest_paid = total_repayment - principal_loan_amount
+            
+            st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
+            
+            e1, e2, e3 = st.columns(3)
+            e1.metric("Net Principal Loan Amount", f"₹{principal_loan_amount:,.0f}")
+            e2.metric("Calculated Monthly EMI", f"₹{calculated_monthly_emi:,.0f} / month")
+            e3.metric("Lifetime Bank Interest Cost", f"₹{total_interest_paid:,.0f}")
+            
+            st.markdown(f"""
+                <div class="emi-box">
+                    <p style="color: #4facfe; margin: 0; font-weight: bold; font-size: 1.05rem;">💼 Financial Simulation Summary Notice</p>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 0.95rem;">
+                        Financing the <strong>{selected_prop_title}</strong> over a {loan_tenure}-year cycle requires a total gross repayment pipeline of 
+                        <strong>₹{total_repayment:,.0f} INR</strong>. Ensure your localized investment income parameters sync with this matrix.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
