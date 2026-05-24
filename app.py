@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import io
+import urllib.parse
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -81,7 +82,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* 🌟 FIX: FORCE SELECTBOX AND MAIN AREA WIDGET LABELS TO PURE WHITE */
+    /* FIX: FORCE SELECTBOX AND MAIN AREA WIDGET LABELS TO PURE WHITE */
     div[data-testid="stSelectbox"] label p,
     div[data-testid="stSelectbox"] [data-testid="stWidgetLabel"] p,
     .main label, 
@@ -401,3 +402,48 @@ else:
                 <h3 style="color:#ffffff !important; margin-top:5px; margin-bottom:0; font-weight:800;">📉 Estimated Installment: ₹{monthly_emi:,.0f} / Month</h3>
             </div>
         """, unsafe_allow_html=True)
+
+    # =====================================================================
+    # 🌟 NEW FEATURE: INTERACTIVE WHATSAPP LEAD SHARING ENGINE
+    # =====================================================================
+    st.markdown("### 📲 Share Deal Briefing to WhatsApp")
+    
+    # Safely compile text block metrics from the currently selected property above
+    raw_whatsapp_msg = (
+        f"🏢 *PropInsight™ Deal Briefing Alert*\n\n"
+        f"📍 *Property:* {property_row['title']}\n"
+        f"🏘️ *Locality:* {property_row['locality']}\n"
+        f"🛏️ *Configuration:* {property_row['bedrooms']} BHK\n"
+        f"💰 *Market Valuation:* ₹{property_price:,.0f}\n"
+        f"📐 *Sizing Area:* {property_row['square_feet']} Sqft\n"
+        f"🏷️ *Status:* {property_row['Market Status']}\n\n"
+        f"📉 _Estimated Loan EMI evaluates at approximately ₹{monthly_emi:,.0f}/month._"
+    )
+    
+    # URL-encode the text string to pass safely to browser protocols
+    encoded_message = urllib.parse.quote(raw_whatsapp_msg)
+    whatsapp_api_url = f"https://wa.me/?text={encoded_message}"
+    
+    # Build button container styling
+    whatsapp_btn_html = f"""
+        <a href="{whatsapp_api_url}" target="_blank" style="text-decoration: none;">
+            <button style="
+                background-color: #25D366; 
+                color: white; 
+                border: none; 
+                padding: 12px 24px; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-weight: bold;
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+                margin-top: 10px;
+            ">
+                💬 Send Briefing via WhatsApp Web
+            </button>
+        </a>
+    """
+    st.markdown(whatsapp_btn_html, unsafe_allow_html=True)
