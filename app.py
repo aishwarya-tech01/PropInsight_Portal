@@ -72,6 +72,15 @@ st.markdown("""
         background-image: linear-gradient(to right, #ffffff, #002244, transparent);
         margin: 20px 0;
     }
+    
+    /* CUSTOM BLOCK FOR EMI HIGHLIGHT RADIAL CALLOUTS */
+    .emi-container {
+        background-color: #002244 !important;
+        border: 2px dashed #ffffff !important;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 15px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -171,34 +180,20 @@ else:
     col2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
     col3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
     
-    # 🌟 NEW FEATURE: HTML5 CONVERSATIONAL SPEECH INTEGRATION
-    # Construct a clean summary string for the speech synthesis engine
-    speech_text = f"Analysis complete. Found {total_options} property matches in {selected_locality}. The average valuation is {int(avg_market_price)} Rupees."
-    
-    # JavaScript code injection using Web Speech API to read text out loud
+    # HTML5 Conversational Speech Core Link
+    speech_text = f"Analysis complete. Found {total_options} property matches. The average valuation is {int(avg_market_price)} Rupees."
     tts_html = f"""
         <script>
         function speakSummary() {{
             var msg = new SpeechSynthesisUtterance("{speech_text}");
-            msg.rate = 1.0;
-            msg.pitch = 1.0;
             window.speechSynthesis.speak(msg);
         }}
         </script>
-        <button onclick="speakSummary()" style="
-            background-color: #002244; 
-            color: white; 
-            border: 2px solid white; 
-            padding: 10px 20px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold;
-            font-size: 1rem;
-            margin-top: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        ">🔊 Listen to Analytics Audio Summary</button>
+        <button onclick="speakSummary()" style="background-color: #002244; color: white; border: 2px solid white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 15px;">
+            🔊 Listen to Analytics Audio Summary
+        </button>
     """
-    st.components.v1.html(tts_html, height=70)
+    st.components.v1.html(tts_html, height=60)
     
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     
@@ -211,11 +206,7 @@ else:
         color="locality",
         size="cost_per_sqft",
         hover_name="title",
-        labels={
-            "square_feet": "Property Size (Square Feet)",
-            "price": "Market Price (INR)",
-            "locality": "Neighborhood"
-        },
+        labels={"square_feet": "Property Size (Sqft)", "price": "Market Price (INR)", "locality": "Neighborhood"},
         template="plotly_dark"
     )
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
@@ -232,13 +223,55 @@ else:
         return "Standard Market Value"
         
     df_merged['Market Status'] = df_merged.apply(calculate_deal_status, axis=1)
-    
     display_cols = ['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft', 'Market Status']
     
     st.dataframe(
-        df_merged[display_cols].style.format({
-            'price': '₹{:,.0f}',
-            'cost_per_sqft': '₹{:.0f}/sqft'
-        }), 
+        df_merged[display_cols].style.format({'price': '₹{:,.0f}', 'cost_per_sqft': '₹{:.0f}/sqft'}), 
         use_container_width=True
     )
+    
+    st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
+    
+    # 🌟 BONUS FEATURE LAYER: ON-THE-FLY LOAN & EMI ESTIMATOR ENGINE
+    st.markdown("### 🧮 On-the-Fly Mortgage Loan & EMI Estimator")
+    
+    # Dropdown selector containing your live dynamic listings records
+    selected_property_title = st.selectbox("Isolate an Asset Row for Financial Estimation Analysis", df_merged['title'].unique())
+    
+    # Extract asset records based on selected dropdown title
+    property_row = df_merged[df_merged['title'] == selected_property_title].iloc[0]
+    property_price = property_row['price']
+    
+    calc_col1, calc_col2 = st.columns(2)
+    with calc_col1:
+        down_payment_pct = st.slider("Down Payment Allocation Percentage (%)", min_value=10, max_value=50, value=20, step=5)
+        loan_tenure_years = st.slider("Loan Repayment Tenure Duration (Years)", min_value=5, max_value=30, value=20, step=5)
+        interest_rate = st.slider("Annual Bank Interest Lending Rate (%)", min_value=5.0, max_value=15.0, value=8.5, step=0.1)
+        
+    with calc_col2:
+        # Core mathematical transformations
+        down_payment_amount = property_price * (down_payment_pct / 100)
+        principal_loan_amount = property_price - down_payment_amount
+        
+        # Monthly interest formula primitives math modeling
+        monthly_rate = (interest_rate / 12) / 100
+        total_months = loan_tenure_years * 12
+        
+        # Guard clause handling standard mathematical evaluation
+        if monthly_rate > 0:
+            monthly_emi = principal_loan_amount * (monthly_rate * (1 + monthly_rate)**total_months) / ((1 + monthly_rate)**total_months - 1)
+        else:
+            monthly_emi = principal_loan_amount / total_months
+            
+        # Draw formatted data analytics calculations metrics callout box onto screen layout
+        st.markdown(f"""
+            <div class="emi-container">
+                <h4 style="margin-top:0;">📋 Financial Assessment Summary:</h4>
+                <p>💸 <b>Isolated Asset Price:</b> ₹{property_price:,.0f}</p>
+                <p>🧱 <b>Upfront Down Payment Plan ({down_payment_pct}%):</b> ₹{down_payment_amount:,.0f}</p>
+                <p>🛡️ <b>Principal Bank Financing Total:</b> ₹{principal_loan_amount:,.0f}</p>
+                <hr style="border:0; height:1px; background-color:white; margin:10px 0;">
+                <h3 style="color:#00f2fe !important; margin-bottom:0;">📉 Estimated Installment: ₹{monthly_emi:,.0f} / Month</h3>
+            </div>
+        """, unsafe_allow_html=True)
+        
