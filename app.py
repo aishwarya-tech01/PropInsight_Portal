@@ -13,7 +13,7 @@ from reportlab.lib import colors
 st.set_page_config(page_title="PropInsight™ Analytics", page_icon="🏢", layout="wide")
 
 # =====================================================================
-# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF)
+# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF) - FINAL POLISH
 # =====================================================================
 st.markdown("""
     <style>
@@ -80,6 +80,16 @@ st.markdown("""
         color: #ffffff !important;
         font-weight: 600 !important;
     }
+
+    /* 🌟 FIX: FORCE SELECTBOX AND MAIN AREA WIDGET LABELS TO PURE WHITE */
+    div[data-testid="stSelectbox"] label p,
+    div[data-testid="stSelectbox"] [data-testid="stWidgetLabel"] p,
+    .main label, 
+    .main [data-testid="stWidgetLabel"] p {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
     
     /* FIXED FINANCING ANALYSIS SUMMARY BOX */
     .emi-container {
@@ -118,12 +128,23 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Core Listings Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS listings (
             property_id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT, locality TEXT, bedrooms INTEGER, price REAL, square_feet INTEGER
         )
     ''')
+    
+    # Historical Trend Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS price_trends (
+            trend_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            locality TEXT, quarter TEXT, avg_rate_sqft REAL
+        )
+    ''')
+    
     cursor.execute("SELECT COUNT(*) FROM listings")
     if cursor.fetchone()[0] == 0:
         default_listings = [
@@ -138,6 +159,17 @@ def init_db():
             ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100)
         ]
         cursor.executemany("INSERT INTO listings (title, locality, bedrooms, price, square_feet) VALUES (?, ?, ?, ?, ?)", default_listings)
+        
+    cursor.execute("SELECT COUNT(*) FROM price_trends")
+    if cursor.fetchone()[0] == 0:
+        trend_records = [
+            ('Koregaon Park', 'Q1-25', 6200), ('Koregaon Park', 'Q2-25', 6450), ('Koregaon Park', 'Q3-25', 6600), ('Koregaon Park', 'Q4-25', 6818),
+            ('Kothrud', 'Q1-25', 5900), ('Kothrud', 'Q2-25', 6100), ('Kothrud', 'Q3-25', 6300), ('Kothrud', 'Q4-25', 6551),
+            ('Baner', 'Q1-25', 5200), ('Baner', 'Q2-25', 5500), ('Baner', 'Q3-25', 5800), ('Baner', 'Q4-25', 6140),
+            ('Wagholi', 'Q1-25', 4100), ('Wagholi', 'Q2-25', 4400), ('Wagholi', 'Q3-25', 4650), ('Wagholi', 'Q4-25', 4842)
+        ]
+        cursor.executemany("INSERT INTO price_trends (locality, quarter, avg_rate_sqft) VALUES (?, ?, ?)", trend_records)
+        
     conn.commit()
     conn.close()
 
@@ -189,6 +221,11 @@ if selected_locality != "All Locations":
 conn = get_db_connection()
 df_properties = pd.read_sql_query(query, conn, params=params)
 df_baselines = pd.read_sql_query("SELECT locality, AVG(price / square_feet) as baseline_avg FROM listings GROUP BY locality", conn)
+
+if selected_locality == "All Locations":
+    df_trends = pd.read_sql_query("SELECT quarter, locality, avg_rate_sqft FROM price_trends ORDER BY quarter ASC", conn)
+else:
+    df_trends = pd.read_sql_query("SELECT quarter, locality, avg_rate_sqft FROM price_trends WHERE locality = ? ORDER BY quarter ASC", [selected_locality], conn)
 conn.close()
 
 st.markdown("### 📊 Dynamic Location Valuation Matrix")
@@ -205,11 +242,9 @@ else:
     col2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
     col3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
     
-    # Horizontal Actions Panel row space
-    action_col1, action_col2 = st.columns([1, 4])
+    action_col1, action_col2 = st.columns([2, 5])
     
     with action_col1:
-        # HTML5 Conversational Speech Button Link
         speech_text = f"Analysis complete. Found {total_options} property matches. The average valuation is {int(avg_market_price)} Rupees."
         tts_html = f"""
             <script>
@@ -218,35 +253,40 @@ else:
                 window.speechSynthesis.speak(msg);
             }}
             </script>
-            <button onclick="speakSummary()" style="background-color: #002244; color: white; border: 2px solid white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; margin-top: 15px; width: 100%;">
-                🔊 Audio Summary
-            </button>
+            <button onclick="speakSummary()" style="
+                background-color: #002244; 
+                color: white; 
+                border: 2px solid white; 
+                padding: 12px 20px; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-weight: bold;
+                font-size: 0.95rem; 
+                margin-top: 10px; 
+                width: 100%;
+                white-space: nowrap;
+            ">🔊 Audio Summary</button>
         """
-        st.components.v1.html(tts_html, height=60)
+        st.components.v1.html(tts_html, height=75)
         
     with action_col2:
-        # 🌟 AUTOMATED PDF ARCHITECTURE GENERATOR LOGIC
         def generate_pdf_report(dataframe, total_matches, avg_price, location_tag):
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
             story = []
-            
             styles = getSampleStyleSheet()
             title_style = ParagraphStyle('ReportTitle', parent=styles['Heading1'], fontSize=22, textColor=colors.HexColor('#002244'), spaceAfter=15)
             meta_style = ParagraphStyle('ReportMeta', parent=styles['Normal'], fontSize=10, textColor=colors.gray, spaceAfter=20)
             body_style = ParagraphStyle('ReportBody', parent=styles['Normal'], fontSize=11, spaceAfter=12)
             
-            # Document Content
             story.append(Paragraph("PropInsight™ Valuation Summary Report", title_style))
             story.append(Paragraph(f"Target Cluster Region: {location_tag} | Dynamic Scope Audit Parameters", meta_style))
             story.append(Spacer(1, 10))
             
-            # Summary Metrics Statements
             summary_msg = f"<b>Executive Summary:</b> The localized matrix isolated <b>{total_matches} viable real estate assets</b> within the configured budget limitations. The mean capital valuation benchmark evaluates at <b>INR {avg_price:,.2f}</b>."
             story.append(Paragraph(summary_msg, body_style))
             story.append(Spacer(1, 15))
             
-            # Formulating structured report columns data table grid
             table_data = [['Property Asset Title', 'Neighborhood', 'BHK', 'Market Pricing (INR)']]
             for _, row in dataframe.head(10).iterrows():
                 table_data.append([row['title'], row['locality'], str(row['bedrooms']), f"{row['price']:,.0f}"])
@@ -261,19 +301,13 @@ else:
                 ('BOTTOMPADDING', (0,0), (-1,0), 8),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#F4F6F9')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
-                ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-                ('FONTSIZE', (0,1), (-1,-1), 9),
             ]))
-            
             story.append(pdf_table)
             doc.build(story)
             buffer.seek(0)
             return buffer.getvalue()
 
-        # Generate download connection binary package stream
         pdf_data = generate_pdf_report(df_properties, total_options, avg_market_price, selected_locality)
-        
-        # Attach downstream interactive trigger card container component
         st.download_button(
             label="📄 Export Executive Analytics Report (PDF)",
             data=pdf_data,
@@ -285,34 +319,40 @@ else:
 
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     
-    # Market Trends Chart Section
-    st.markdown("### 📈 Market Trends & Valuation Distribution")
+    # Symmetrical Chart Panel
+    graph_col1, graph_col2 = st.columns(2)
     
-    df_plot = df_properties.copy()
-    if not df_plot.empty:
-        np.random.seed(42)
-        df_plot['jittered_area'] = df_plot['square_feet'] + np.random.uniform(-25, 25, len(df_plot))
-        df_plot['jittered_price'] = df_plot['price'] + np.random.uniform(-100000, 100000, len(df_plot))
-    
-    fig = px.scatter(
-        df_plot,
-        x="jittered_area",
-        y="jittered_price",
-        color="locality",
-        size="cost_per_sqft",
-        hover_name="title",
-        hover_data={"square_feet": True, "price": True, "jittered_area": False, "jittered_price": False},
-        labels={"jittered_area": "Property Size (Sqft)", "jittered_price": "Market Price (INR)", "locality": "Neighborhood"},
-        template="plotly_dark"
-    )
-    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig, use_container_width=True)
+    with graph_col1:
+        st.markdown("### 📈 Price vs. Area Sizing Breakdown")
+        df_plot = df_properties.copy()
+        if not df_plot.empty:
+            np.random.seed(42)
+            df_plot['jittered_area'] = df_plot['square_feet'] + np.random.uniform(-25, 25, len(df_plot))
+            df_plot['jittered_price'] = df_plot['price'] + np.random.uniform(-100000, 100000, len(df_plot))
+        
+        fig_scatter = px.scatter(
+            df_plot, x="jittered_area", y="jittered_price", color="locality", size="cost_per_sqft", hover_name="title",
+            hover_data={"square_feet": True, "price": True, "jittered_area": False, "jittered_price": False},
+            labels={"jittered_area": "Property Size (Sqft)", "jittered_price": "Market Price (INR)", "locality": "Neighborhood"},
+            template="plotly_dark"
+        )
+        fig_scatter.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_scatter, use_container_width=True)
+        
+    with graph_col2:
+        st.markdown("### 📉 Historical Neighborhood Price Trends")
+        fig_line = px.line(
+            df_trends, x="quarter", y="avg_rate_sqft", color="locality", markers=True,
+            labels={"quarter": "Timeline Interval (Quarter)", "avg_rate_sqft": "Rate (INR / Sqft)", "locality": "Neighborhood"},
+            title="Capital Growth Compounding Path (2025)", template="plotly_dark"
+        )
+        fig_line.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_line, use_container_width=True)
     
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     st.markdown("#### 🏢 Filtered Property Inventory Listings Catalog")
     
     df_merged = pd.merge(df_properties, df_baselines, on='locality', how='left')
-    
     def calculate_deal_status(row):
         if row['cost_per_sqft'] < row['baseline_avg']:
             return "🔥 BARGAIN ASSET"
@@ -330,7 +370,6 @@ else:
     
     # BONUS FEATURE LAYER: ON-THE-FLY LOAN & EMI ESTIMATOR ENGINE
     st.markdown("### 🧮 On-the-Fly Mortgage Loan & EMI Estimator")
-    
     selected_property_title = st.selectbox("Isolate an Asset Row for Financial Estimation Analysis", df_merged['title'].unique())
     property_row = df_merged[df_merged['title'] == selected_property_title].iloc[0]
     property_price = property_row['price']
@@ -344,7 +383,6 @@ else:
     with calc_col2:
         down_payment_amount = property_price * (down_payment_pct / 100)
         principal_loan_amount = property_price - down_payment_amount
-        
         monthly_rate = (interest_rate / 12) / 100
         total_months = loan_tenure_years * 12
         
@@ -363,4 +401,3 @@ else:
                 <h3 style="color:#ffffff !important; margin-top:5px; margin-bottom:0; font-weight:800;">📉 Estimated Installment: ₹{monthly_emi:,.0f} / Month</h3>
             </div>
         """, unsafe_allow_html=True)
-        
