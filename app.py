@@ -101,7 +101,7 @@ def init_db():
             ('Elite Penthouse Suite', 'Baner', 4, 18000000, 2400),
             ('Budget Studio Apartment', 'Wagholi', 1, 3200000, 450),
             ('Urban 2BHK Residency', 'Wagholi', 2, 5100000, 950),
-            ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100)
+            ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100) # Underpriced property asset!
         ]
         cursor.executemany("INSERT INTO listings (title, locality, bedrooms, price, square_feet) VALUES (?, ?, ?, ?, ?)", default_listings)
     conn.commit()
@@ -146,7 +146,7 @@ with st.sidebar:
 st.title("🏢 PropInsight™: Real Estate Valuation & Search Portal")
 st.markdown("---")
 
-# 🌟 DYNAMIC QUERY COUPLING FOR ADVANCED MULTI-VARIABLE SEARCH
+# Pull listings matching core criteria
 query = "SELECT *, (price / square_feet) AS cost_per_sqft FROM listings WHERE price <= ? AND bedrooms >= ?"
 params = [max_budget, selected_bhk]
 if selected_locality != "All Locations":
@@ -155,6 +155,10 @@ if selected_locality != "All Locations":
     
 conn = get_db_connection()
 df_properties = pd.read_sql_query(query, conn, params=params)
+
+# 🌟 AUTOMATED ALGORITHMIC BARGAIN ENGINE ENGINE LAYER
+# 1. Fetch baseline average cost per sqft for EVERY neighborhood to compare against
+df_baselines = pd.read_sql_query("SELECT locality, AVG(price / square_feet) as baseline_avg FROM listings GROUP BY locality", conn)
 conn.close()
 
 st.markdown("### 📊 Dynamic Location Valuation Matrix")
@@ -195,10 +199,23 @@ else:
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     st.markdown("#### 🏢 Filtered Property Inventory Listings Catalog")
     
-    # 🌟 CLEANED DATA TABLE GRID WITH DYNAMIC ROW SELECTIONS
-    # 🌟 CLEAN DATA TABLE GRID (CRASH-PROOF FORMATTING)
+    # 2. Merge baseline calculations to automatically isolate deals
+    df_merged = pd.merge(df_properties, df_baselines, on='locality', how='left')
+    
+    # 3. Add dynamic status column based on your documentation requirements!
+    def calculate_deal_status(row):
+        if row['cost_per_sqft'] < row['baseline_avg']:
+            return "🔥 BARGAIN ASSET"
+        return "Standard Market Value"
+        
+    df_merged['Market Status'] = df_merged.apply(calculate_deal_status, axis=1)
+    
+    # Re-order columns nicely for display
+    display_cols = ['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft', 'Market Status']
+    
+    # Render final data table grid cleanly without question marks!
     st.dataframe(
-        df_properties[['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft']].style.format({
+        df_merged[display_cols].style.format({
             'price': '₹{:,.0f}',
             'cost_per_sqft': '₹{:.0f}/sqft'
         }), 
