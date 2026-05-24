@@ -2,12 +2,13 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import plotly.express as px
+import numpy as np
 
 # Configure the structural layout of our web viewport interface
 st.set_page_config(page_title="PropInsight™ Analytics", page_icon="🏢", layout="wide")
 
 # =====================================================================
-# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF)
+# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF) - ALL FIXES APPLIED
 # =====================================================================
 st.markdown("""
     <style>
@@ -66,20 +67,39 @@ st.markdown("""
         font-weight: 800 !important;
     }
     
+    /* 🛠️ ISSUE FIX #4: FORCE ALL SLIDER LABEL TEXT AND NUMBERS TO WHITE */
+    div[data-testid="stSlider"] label p,
+    div[data-testid="stSlider"] span,
+    div[data-testid="stSlider"] div,
+    div[data-testid="stSlider"] [data-testid="stWidgetLabel"] p {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    /* 🛠️ ISSUE FIX #2 & #3: FULLY FIXED, WRAPPED FINANCING ANALYSIS SUMMARY BOX */
+    .emi-container {
+        background-color: #002244 !important;
+        border: 2px solid #ffffff !important;
+        padding: 25px !important;
+        border-radius: 12px !important;
+        margin-top: 15px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+        display: block !important;
+        clear: both !important;
+        overflow: visible !important; /* Prevents text from clipping off */
+    }
+    .emi-container p, 
+    .emi-container h3, 
+    .emi-container h4,
+    .emi-container b {
+        color: #ffffff !important; /* Forces internal numbers/labels to high-contrast white */
+    }
+    
     .custom-hr {
         border: 0;
         height: 2px;
         background-image: linear-gradient(to right, #ffffff, #002244, transparent);
         margin: 20px 0;
-    }
-    
-    /* CUSTOM BLOCK FOR EMI HIGHLIGHT RADIAL CALLOUTS */
-    .emi-container {
-        background-color: #002244 !important;
-        border: 2px dashed #ffffff !important;
-        padding: 20px;
-        border-radius: 10px;
-        margin-top: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -199,14 +219,24 @@ else:
     
     # Market Trends Chart Section
     st.markdown("### 📈 Market Trends & Valuation Distribution")
+    
+    # 🛠️ ISSUE FIX #1: RESOLVE OVERLAPPING SCATTER POINTS BY ADDING A CONTROLLED JITTER TO THE PLOT DISPLAY
+    df_plot = df_properties.copy()
+    if not df_plot.empty:
+        # Adds small proportional, non-destructive coordinate variation to offset perfect node overlaps
+        np.random.seed(42)
+        df_plot['jittered_area'] = df_plot['square_feet'] + np.random.uniform(-25, 25, len(df_plot))
+        df_plot['jittered_price'] = df_plot['price'] + np.random.uniform(-100000, 100000, len(df_plot))
+    
     fig = px.scatter(
-        df_properties,
-        x="square_feet",
-        y="price",
+        df_plot,
+        x="jittered_area",
+        y="jittered_price",
         color="locality",
         size="cost_per_sqft",
         hover_name="title",
-        labels={"square_feet": "Property Size (Sqft)", "price": "Market Price (INR)", "locality": "Neighborhood"},
+        hover_data={"square_feet": True, "price": True, "jittered_area": False, "jittered_price": False},
+        labels={"jittered_area": "Property Size (Sqft)", "jittered_price": "Market Price (INR)", "locality": "Neighborhood"},
         template="plotly_dark"
     )
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
@@ -232,13 +262,10 @@ else:
     
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     
-    # 🌟 BONUS FEATURE LAYER: ON-THE-FLY LOAN & EMI ESTIMATOR ENGINE
+    # BONUS FEATURE LAYER: ON-THE-FLY LOAN & EMI ESTIMATOR ENGINE
     st.markdown("### 🧮 On-the-Fly Mortgage Loan & EMI Estimator")
     
-    # Dropdown selector containing your live dynamic listings records
     selected_property_title = st.selectbox("Isolate an Asset Row for Financial Estimation Analysis", df_merged['title'].unique())
-    
-    # Extract asset records based on selected dropdown title
     property_row = df_merged[df_merged['title'] == selected_property_title].iloc[0]
     property_price = property_row['price']
     
@@ -249,29 +276,25 @@ else:
         interest_rate = st.slider("Annual Bank Interest Lending Rate (%)", min_value=5.0, max_value=15.0, value=8.5, step=0.1)
         
     with calc_col2:
-        # Core mathematical transformations
         down_payment_amount = property_price * (down_payment_pct / 100)
         principal_loan_amount = property_price - down_payment_amount
         
-        # Monthly interest formula primitives math modeling
         monthly_rate = (interest_rate / 12) / 100
         total_months = loan_tenure_years * 12
         
-        # Guard clause handling standard mathematical evaluation
         if monthly_rate > 0:
             monthly_emi = principal_loan_amount * (monthly_rate * (1 + monthly_rate)**total_months) / ((1 + monthly_rate)**total_months - 1)
         else:
             monthly_emi = principal_loan_amount / total_months
             
-        # Draw formatted data analytics calculations metrics callout box onto screen layout
+        # Draw fully unclipped text and white high-contrast variables callout block layout
         st.markdown(f"""
             <div class="emi-container">
-                <h4 style="margin-top:0;">📋 Financial Assessment Summary:</h4>
-                <p>💸 <b>Isolated Asset Price:</b> ₹{property_price:,.0f}</p>
-                <p>🧱 <b>Upfront Down Payment Plan ({down_payment_pct}%):</b> ₹{down_payment_amount:,.0f}</p>
-                <p>🛡️ <b>Principal Bank Financing Total:</b> ₹{principal_loan_amount:,.0f}</p>
-                <hr style="border:0; height:1px; background-color:white; margin:10px 0;">
-                <h3 style="color:#00f2fe !important; margin-bottom:0;">📉 Estimated Installment: ₹{monthly_emi:,.0f} / Month</h3>
+                <h4 style="margin-top:0; margin-bottom:15px; font-weight:700;">📋 Financial Assessment Summary</h4>
+                <p style="margin:8px 0;">💸 <b>Isolated Asset Price:</b> ₹{property_price:,.0f}</p>
+                <p style="margin:8px 0;">🧱 <b>Upfront Down Payment Plan ({down_payment_pct}%):</b> ₹{down_payment_amount:,.0f}</p>
+                <p style="margin:8px 0;">🛡️ <b>Principal Bank Financing Total:</b> ₹{principal_loan_amount:,.0f}</p>
+                <hr style="border:0; height:1px; background-color:rgba(255,255,255,0.3); margin:15px 0;">
+                <h3 style="color:#ffffff !important; margin-top:5px; margin-bottom:0; font-weight:800;">📉 Estimated Installment: ₹{monthly_emi:,.0f} / Month</h3>
             </div>
         """, unsafe_allow_html=True)
-        
