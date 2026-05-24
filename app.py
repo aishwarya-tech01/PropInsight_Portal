@@ -3,12 +3,17 @@ import sqlite3
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import io
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 # Configure the structural layout of our web viewport interface
 st.set_page_config(page_title="PropInsight™ Analytics", page_icon="🏢", layout="wide")
 
 # =====================================================================
-# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF) - ALL FIXES APPLIED
+# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF)
 # =====================================================================
 st.markdown("""
     <style>
@@ -67,7 +72,7 @@ st.markdown("""
         font-weight: 800 !important;
     }
     
-    /* 🛠️ ISSUE FIX #4: FORCE ALL SLIDER LABEL TEXT AND NUMBERS TO WHITE */
+    /* FORCE ALL SLIDER LABEL TEXT AND NUMBERS TO WHITE */
     div[data-testid="stSlider"] label p,
     div[data-testid="stSlider"] span,
     div[data-testid="stSlider"] div,
@@ -76,23 +81,23 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* 🛠️ ISSUE FIX #2 & #3: FULLY FIXED, WRAPPED FINANCING ANALYSIS SUMMARY BOX */
+    /* FIXED FINANCING ANALYSIS SUMMARY BOX */
     .emi-container {
         background-color: #002244 !important;
         border: 2px solid #ffffff !important;
         padding: 25px !important;
         border-radius: 12px !important;
         margin-top: 15px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
         display: block !important;
         clear: both !important;
-        overflow: visible !important; /* Prevents text from clipping off */
+        overflow: visible !important;
     }
     .emi-container p, 
     .emi-container h3, 
     .emi-container h4,
     .emi-container b {
-        color: #ffffff !important; /* Forces internal numbers/labels to high-contrast white */
+        color: #ffffff !important;
     }
     
     .custom-hr {
@@ -200,30 +205,91 @@ else:
     col2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
     col3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
     
-    # HTML5 Conversational Speech Core Link
-    speech_text = f"Analysis complete. Found {total_options} property matches. The average valuation is {int(avg_market_price)} Rupees."
-    tts_html = f"""
-        <script>
-        function speakSummary() {{
-            var msg = new SpeechSynthesisUtterance("{speech_text}");
-            window.speechSynthesis.speak(msg);
-        }}
-        </script>
-        <button onclick="speakSummary()" style="background-color: #002244; color: white; border: 2px solid white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 15px;">
-            🔊 Listen to Analytics Audio Summary
-        </button>
-    """
-    st.components.v1.html(tts_html, height=60)
+    # Horizontal Actions Panel row space
+    action_col1, action_col2 = st.columns([1, 4])
     
+    with action_col1:
+        # HTML5 Conversational Speech Button Link
+        speech_text = f"Analysis complete. Found {total_options} property matches. The average valuation is {int(avg_market_price)} Rupees."
+        tts_html = f"""
+            <script>
+            function speakSummary() {{
+                var msg = new SpeechSynthesisUtterance("{speech_text}");
+                window.speechSynthesis.speak(msg);
+            }}
+            </script>
+            <button onclick="speakSummary()" style="background-color: #002244; color: white; border: 2px solid white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; margin-top: 15px; width: 100%;">
+                🔊 Audio Summary
+            </button>
+        """
+        st.components.v1.html(tts_html, height=60)
+        
+    with action_col2:
+        # 🌟 AUTOMATED PDF ARCHITECTURE GENERATOR LOGIC
+        def generate_pdf_report(dataframe, total_matches, avg_price, location_tag):
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+            story = []
+            
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle('ReportTitle', parent=styles['Heading1'], fontSize=22, textColor=colors.HexColor('#002244'), spaceAfter=15)
+            meta_style = ParagraphStyle('ReportMeta', parent=styles['Normal'], fontSize=10, textColor=colors.gray, spaceAfter=20)
+            body_style = ParagraphStyle('ReportBody', parent=styles['Normal'], fontSize=11, spaceAfter=12)
+            
+            # Document Content
+            story.append(Paragraph("PropInsight™ Valuation Summary Report", title_style))
+            story.append(Paragraph(f"Target Cluster Region: {location_tag} | Dynamic Scope Audit Parameters", meta_style))
+            story.append(Spacer(1, 10))
+            
+            # Summary Metrics Statements
+            summary_msg = f"<b>Executive Summary:</b> The localized matrix isolated <b>{total_matches} viable real estate assets</b> within the configured budget limitations. The mean capital valuation benchmark evaluates at <b>INR {avg_price:,.2f}</b>."
+            story.append(Paragraph(summary_msg, body_style))
+            story.append(Spacer(1, 15))
+            
+            # Formulating structured report columns data table grid
+            table_data = [['Property Asset Title', 'Neighborhood', 'BHK', 'Market Pricing (INR)']]
+            for _, row in dataframe.head(10).iterrows():
+                table_data.append([row['title'], row['locality'], str(row['bedrooms']), f"{row['price']:,.0f}"])
+                
+            pdf_table = Table(table_data, colWidths=[200, 130, 50, 130])
+            pdf_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#002244')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,0), 10),
+                ('BOTTOMPADDING', (0,0), (-1,0), 8),
+                ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#F4F6F9')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+                ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+                ('FONTSIZE', (0,1), (-1,-1), 9),
+            ]))
+            
+            story.append(pdf_table)
+            doc.build(story)
+            buffer.seek(0)
+            return buffer.getvalue()
+
+        # Generate download connection binary package stream
+        pdf_data = generate_pdf_report(df_properties, total_options, avg_market_price, selected_locality)
+        
+        # Attach downstream interactive trigger card container component
+        st.download_button(
+            label="📄 Export Executive Analytics Report (PDF)",
+            data=pdf_data,
+            file_name="PropInsight_Market_Report.pdf",
+            mime="application/pdf",
+            key="pdf_download_btn",
+            help="Generates an on-the-fly executive reporting overview asset"
+        )
+
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     
     # Market Trends Chart Section
     st.markdown("### 📈 Market Trends & Valuation Distribution")
     
-    # 🛠️ ISSUE FIX #1: RESOLVE OVERLAPPING SCATTER POINTS BY ADDING A CONTROLLED JITTER TO THE PLOT DISPLAY
     df_plot = df_properties.copy()
     if not df_plot.empty:
-        # Adds small proportional, non-destructive coordinate variation to offset perfect node overlaps
         np.random.seed(42)
         df_plot['jittered_area'] = df_plot['square_feet'] + np.random.uniform(-25, 25, len(df_plot))
         df_plot['jittered_price'] = df_plot['price'] + np.random.uniform(-100000, 100000, len(df_plot))
@@ -287,7 +353,6 @@ else:
         else:
             monthly_emi = principal_loan_amount / total_months
             
-        # Draw fully unclipped text and white high-contrast variables callout block layout
         st.markdown(f"""
             <div class="emi-container">
                 <h4 style="margin-top:0; margin-bottom:15px; font-weight:700;">📋 Financial Assessment Summary</h4>
@@ -298,3 +363,4 @@ else:
                 <h3 style="color:#ffffff !important; margin-top:5px; margin-bottom:0; font-weight:800;">📉 Estimated Installment: ₹{monthly_emi:,.0f} / Month</h3>
             </div>
         """, unsafe_allow_html=True)
+        
