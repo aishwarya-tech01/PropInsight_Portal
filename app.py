@@ -101,7 +101,7 @@ def init_db():
             ('Elite Penthouse Suite', 'Baner', 4, 18000000, 2400),
             ('Budget Studio Apartment', 'Wagholi', 1, 3200000, 450),
             ('Urban 2BHK Residency', 'Wagholi', 2, 5100000, 950),
-            ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100) # Underpriced property asset!
+            ('Investor Liquidation 2BHK', 'Baner', 2, 5200000, 1100)
         ]
         cursor.executemany("INSERT INTO listings (title, locality, bedrooms, price, square_feet) VALUES (?, ?, ?, ?, ?)", default_listings)
     conn.commit()
@@ -146,7 +146,6 @@ with st.sidebar:
 st.title("🏢 PropInsight™: Real Estate Valuation & Search Portal")
 st.markdown("---")
 
-# Pull listings matching core criteria
 query = "SELECT *, (price / square_feet) AS cost_per_sqft FROM listings WHERE price <= ? AND bedrooms >= ?"
 params = [max_budget, selected_bhk]
 if selected_locality != "All Locations":
@@ -155,9 +154,6 @@ if selected_locality != "All Locations":
     
 conn = get_db_connection()
 df_properties = pd.read_sql_query(query, conn, params=params)
-
-# 🌟 AUTOMATED ALGORITHMIC BARGAIN ENGINE ENGINE LAYER
-# 1. Fetch baseline average cost per sqft for EVERY neighborhood to compare against
 df_baselines = pd.read_sql_query("SELECT locality, AVG(price / square_feet) as baseline_avg FROM listings GROUP BY locality", conn)
 conn.close()
 
@@ -174,6 +170,35 @@ else:
     col1.metric("Available Market Matches", f"{total_options} Properties")
     col2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
     col3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
+    
+    # 🌟 NEW FEATURE: HTML5 CONVERSATIONAL SPEECH INTEGRATION
+    # Construct a clean summary string for the speech synthesis engine
+    speech_text = f"Analysis complete. Found {total_options} property matches in {selected_locality}. The average valuation is {int(avg_market_price)} Rupees."
+    
+    # JavaScript code injection using Web Speech API to read text out loud
+    tts_html = f"""
+        <script>
+        function speakSummary() {{
+            var msg = new SpeechSynthesisUtterance("{speech_text}");
+            msg.rate = 1.0;
+            msg.pitch = 1.0;
+            window.speechSynthesis.speak(msg);
+        }}
+        </script>
+        <button onclick="speakSummary()" style="
+            background-color: #002244; 
+            color: white; 
+            border: 2px solid white; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        ">🔊 Listen to Analytics Audio Summary</button>
+    """
+    st.components.v1.html(tts_html, height=70)
     
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     
@@ -199,10 +224,8 @@ else:
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     st.markdown("#### 🏢 Filtered Property Inventory Listings Catalog")
     
-    # 2. Merge baseline calculations to automatically isolate deals
     df_merged = pd.merge(df_properties, df_baselines, on='locality', how='left')
     
-    # 3. Add dynamic status column based on your documentation requirements!
     def calculate_deal_status(row):
         if row['cost_per_sqft'] < row['baseline_avg']:
             return "🔥 BARGAIN ASSET"
@@ -210,10 +233,8 @@ else:
         
     df_merged['Market Status'] = df_merged.apply(calculate_deal_status, axis=1)
     
-    # Re-order columns nicely for display
     display_cols = ['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft', 'Market Status']
     
-    # Render final data table grid cleanly without question marks!
     st.dataframe(
         df_merged[display_cols].style.format({
             'price': '₹{:,.0f}',
