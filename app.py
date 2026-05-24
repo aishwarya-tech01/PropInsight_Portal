@@ -7,11 +7,11 @@ import plotly.express as px
 st.set_page_config(page_title="PropInsight™ Analytics", page_icon="🏢", layout="wide")
 
 # =====================================================================
-# 🎨 STEP-BY-STEP CUSTOM BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF)
+# 🎨 BRANDING THEME SKIN INJECTION (#002244 & #FFFFFF)
 # =====================================================================
 st.markdown("""
     <style>
-    /* 1. FORCE THE MAIN BACKGROUND AND TEXT TO MATCH THE DARK THEME */
+    /* FORCE THE MAIN BACKGROUND AND TEXT TO MATCH THE DARK THEME */
     .main, .block-container {
         background-color: #0b0f19 !important; /* Elegant slate dark background */
     }
@@ -19,13 +19,11 @@ st.markdown("""
         color: #ffffff !important; /* Forces all main screen layout headers to Pure White */
     }
     
-    /* 2. FIXED: ADDED MISSING HASH SYMBOL (#) AND STRIPPED LIGHT-MODE BLUR */
+    /* SIDEBAR MASTER COLOR ENGINE LAYOUT OVERRIDES */
     section[data-testid="stSidebar"] {
-        background-color: #002244 !important; /* Locks left panel to Premium Dark Blue */
+        background-color: #002244 !important; /* Premium Dark Blue Panel */
         border-right: 2px solid #ffffff !important; /* Pure White Divider Line */
     }
-    
-    /* 3. FORCES ALL SIDEBAR BRANDING & DESCRIPTION TEXT TO PURE WHITE */
     section[data-testid="stSidebar"] h2,
     section[data-testid="stSidebar"] h3,
     section[data-testid="stSidebar"] p,
@@ -33,8 +31,6 @@ st.markdown("""
         color: #ffffff !important; 
         font-weight: 700 !important;
     }
-
-    /* 4. SHARP HIGH-CONTRAST SLIDER & DROPDOWN WHITE LABELS FOR VISIBILITY */
     section[data-testid="stSidebar"] label p,
     section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
         color: #ffffff !important; 
@@ -42,7 +38,7 @@ st.markdown("""
         font-size: 1.05rem !important;
     }
 
-    /* 5. FORCE MAIN PAGE METRIC SUMMARIES TO SECTOR DARK BLUE BOXES */
+    /* CONTAINER FRAMES FOR METRICS */
     div[data-testid="stMetric"], 
     div[data-testid="stMetricSimpleBox"] {
         background-color: #002244 !important; 
@@ -52,16 +48,16 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     }
     
-  /* FIXED: TARGEETS RAW INTERNAL LABEL CLASSES AND FORCES MAXIMUM OPACITY */
+    /* LABELS & VALUE TEXT FORCED TO PURE HIGH-CONTRAST WHITE */
     div[data-testid="stMetric"] [data-testid="stMetricLabel"],
     div[data-testid="stMetricSimpleBox"] [data-testid="stMetricLabel"],
     div[data-testid="stMetric"] label,
     div[data-testid="stMetricSimpleBox"] label {
-        color: #ffffff !important; /* Pure high-contrast solid white */
-        opacity: 1 !important; /* Disables any light-theme dimming overrides */
+        color: #ffffff !important; 
+        opacity: 1 !important; 
         font-size: 1.05rem !important; 
         font-weight: 700 !important;
-        -webkit-text-fill-color: #ffffff !important; /* Extra browser insurance */
+        -webkit-text-fill-color: #ffffff !important;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"],
     div[data-testid="stMetricSimpleBox"] [data-testid="stMetricValue"] {
@@ -113,7 +109,6 @@ def init_db():
 
 init_db()
 
-# Fetch dynamic localities list from database for our filter component
 conn = get_db_connection()
 cursor = conn.cursor()
 cursor.execute("SELECT DISTINCT locality FROM listings")
@@ -121,10 +116,9 @@ localities_list = [row[0] for row in cursor.fetchall()]
 conn.close()
 
 # =====================================================================
-# 📊 INTEGRATED SIDEBAR COMPONENT: LOGO + THE 3 RESTORED FEATURES
+# INTERACTIVE SIDEBAR CONTROL PANEL
 # =====================================================================
 with st.sidebar:
-    # RESTORED FEATURE: Premium Branding SVG Logo Vector Container
     st.markdown("""
         <div style="text-align: center; padding: 10px 0;">
             <svg width="75" height="75" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -142,22 +136,17 @@ with st.sidebar:
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     st.markdown("### 🔍 Touchpad Filters")
     
-    # 1. RESTORED FEATURE: Select Neighborhood Dropdown Menu Selector
     selected_locality = st.selectbox("Select Neighborhood Cluster", ["All Locations"] + localities_list)
-        
-    # 2. RESTORED FEATURE: Minimum Bedrooms Requirement Slider Layout
     selected_bhk = st.slider("Minimum Layout Requirements (BHK)", min_value=1, max_value=4, value=1)
-        
-    # 3. RESTORED FEATURE: Maximum Budget Allocation Threshold Slider
     max_budget = st.slider("Maximum Budget Allocation (INR)", min_value=3000000, max_value=20000000, value=20000000, step=500000)
 
 # =====================================================================
-# 📈 MAIN SCREEN SEARCH ENGINE APPLICATION PIPELINE LAYER
+# 📈 MAIN VIEWPORT PROCESSING LAYER
 # =====================================================================
 st.title("🏢 PropInsight™: Real Estate Valuation & Search Portal")
 st.markdown("---")
 
-# Build dynamic parameters relational query pipeline matching our 3 features
+# 🌟 DYNAMIC QUERY COUPLING FOR ADVANCED MULTI-VARIABLE SEARCH
 query = "SELECT *, (price / square_feet) AS cost_per_sqft FROM listings WHERE price <= ? AND bedrooms >= ?"
 params = [max_budget, selected_bhk]
 if selected_locality != "All Locations":
@@ -171,20 +160,47 @@ conn.close()
 st.markdown("### 📊 Dynamic Location Valuation Matrix")
 
 if df_properties.empty:
-    st.warning("No properties found matching your criteria. Adjust your touchpad filters in the sidebar!")
+    st.warning("⚠️ No properties found matching your criteria. Adjust your touchpad filters in the sidebar!")
 else:
-    # Mathematical data transformations
     avg_market_price = df_properties['price'].mean()
     avg_sqft_cost = df_properties['cost_per_sqft'].mean()
     total_options = len(df_properties)
     
-    # Render our 3 Custom Dark Blue Cards with White Text
     col1, col2, col3 = st.columns(3)
     col1.metric("Available Market Matches", f"{total_options} Properties")
     col2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
     col3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
     
-    st.markdown("---")
+    st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
+    
+    # Market Trends Chart Section
+    st.markdown("### 📈 Market Trends & Valuation Distribution")
+    fig = px.scatter(
+        df_properties,
+        x="square_feet",
+        y="price",
+        color="locality",
+        size="cost_per_sqft",
+        hover_name="title",
+        labels={
+            "square_feet": "Property Size (Square Feet)",
+            "price": "Market Price (INR)",
+            "locality": "Neighborhood"
+        },
+        template="plotly_dark"
+    )
+    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
     st.markdown("#### 🏢 Filtered Property Inventory Listings Catalog")
-    # Clean data frame display table
-    st.dataframe(df_properties[['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft']], use_container_width=True)
+    
+    # 🌟 CLEANED DATA TABLE GRID WITH DYNAMIC ROW SELECTIONS
+    # 🌟 CLEAN DATA TABLE GRID (CRASH-PROOF FORMATTING)
+    st.dataframe(
+        df_properties[['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft']].style.format({
+            'price': '₹{:,.0f}',
+            'cost_per_sqft': '₹{:.0f}/sqft'
+        }), 
+        use_container_width=True
+    )
