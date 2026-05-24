@@ -243,6 +243,7 @@ else:
     col2.metric("Average Neighborhood Valuation", f"₹{avg_market_price:,.0f}")
     col3.metric("Avg Rate Per Square Foot", f"₹{avg_sqft_cost:.0f}/sqft")
     
+    # Symetrical Multi-Action Row Block
     action_col1, action_col2 = st.columns([2, 5])
     
     with action_col1:
@@ -351,8 +352,12 @@ else:
         st.plotly_chart(fig_line, use_container_width=True)
     
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
-    st.markdown("#### 🏢 Filtered Property Inventory Listings Catalog")
     
+    # Header block incorporating the CSV exporter utility
+    catalog_title_col, catalog_export_col = st.columns([4, 2])
+    with catalog_title_col:
+        st.markdown("#### 🏢 Filtered Property Inventory Listings Catalog")
+        
     df_merged = pd.merge(df_properties, df_baselines, on='locality', how='left')
     def calculate_deal_status(row):
         if row['cost_per_sqft'] < row['baseline_avg']:
@@ -361,6 +366,19 @@ else:
         
     df_merged['Market Status'] = df_merged.apply(calculate_deal_status, axis=1)
     display_cols = ['title', 'locality', 'bedrooms', 'price', 'square_feet', 'cost_per_sqft', 'Market Status']
+    
+    with catalog_export_col:
+        # 🌟 NEW FEATURE LAYER: DYNAMIC CSV EXPORTER ENGINE
+        # Format dataset directly out to standard text/csv binary streams
+        csv_buffer = df_merged[display_cols].to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Raw Dataset Spreadsheet (CSV)",
+            data=csv_buffer,
+            file_name="PropInsight_Inventory_Extract.csv",
+            mime="text/csv",
+            key="csv_download_btn",
+            help="Extracts current search results grid rows into an analytical spreadsheet matrix file"
+        )
     
     st.dataframe(
         df_merged[display_cols].style.format({'price': '₹{:,.0f}', 'cost_per_sqft': '₹{:.0f}/sqft'}), 
@@ -403,12 +421,8 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # =====================================================================
-    # 🌟 NEW FEATURE: INTERACTIVE WHATSAPP LEAD SHARING ENGINE
-    # =====================================================================
+    # INTERACTIVE WHATSAPP LEAD SHARING ENGINE
     st.markdown("### 📲 Share Deal Briefing to WhatsApp")
-    
-    # Safely compile text block metrics from the currently selected property above
     raw_whatsapp_msg = (
         f"🏢 *PropInsight™ Deal Briefing Alert*\n\n"
         f"📍 *Property:* {property_row['title']}\n"
@@ -419,12 +433,9 @@ else:
         f"🏷️ *Status:* {property_row['Market Status']}\n\n"
         f"📉 _Estimated Loan EMI evaluates at approximately ₹{monthly_emi:,.0f}/month._"
     )
-    
-    # URL-encode the text string to pass safely to browser protocols
     encoded_message = urllib.parse.quote(raw_whatsapp_msg)
     whatsapp_api_url = f"https://wa.me/?text={encoded_message}"
     
-    # Build button container styling
     whatsapp_btn_html = f"""
         <a href="{whatsapp_api_url}" target="_blank" style="text-decoration: none;">
             <button style="
